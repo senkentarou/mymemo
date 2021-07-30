@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Typography, makeStyles, Theme, AppBar, Toolbar, Drawer, List, ListItem, ListItemText, IconButton, InputBase } from '@material-ui/core';
 import { alpha } from '@material-ui/core/styles';
 import DeleteIcon from '@material-ui/icons/Delete';
 import PostAddIcon from '@material-ui/icons/PostAdd';
 import SearchIcon from '@material-ui/icons/Search';
+
+declare global {
+  interface Window {
+    api: any
+  }
+};
+
+const ipcRenderer = window.api;
 
 const useStyles = makeStyles((theme: Theme) => ({
   root: {
@@ -101,7 +109,24 @@ const useStyles = makeStyles((theme: Theme) => ({
 }));
 
 const App: React.FC = () => {
-  const classes = useStyles();
+  const classes = useStyles('');
+  const [text, setText] = useState<string>('');
+
+  const handleOnChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value: string = event.target.value;
+    const savedValue: string = await ipcRenderer.send('message', value);
+
+    setText(savedValue);
+  };
+
+  useEffect(() => {
+    (async () => {
+      const result: string = await ipcRenderer.getText()
+      if (result) {
+        setText(result);
+      }
+    })();
+  }, []);
 
   return (
     <div className={classes.root}>
@@ -125,7 +150,7 @@ const App: React.FC = () => {
               <SearchIcon />
             </div>
             <InputBase
-              placeholder="Search…"
+              placeholder="Search..."
               classes={{
                 root: classes.inputRoot,
                 input: classes.inputInput,
@@ -158,11 +183,12 @@ const App: React.FC = () => {
         <div className={classes.textContent}>
           <InputBase
             multiline
-            defaultValue=""
+            defaultValue={text}
             classes={{
               root: classes.textRoot,
               input: classes.textArea
             }}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => { handleOnChange(event) }}
           />
         </div>
       </main>

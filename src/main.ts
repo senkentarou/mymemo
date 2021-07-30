@@ -1,14 +1,21 @@
-import { BrowserWindow, app } from 'electron';
+import { BrowserWindow, app, ipcMain } from 'electron';
+import ElectronStore from 'electron-store';
 
 const mainURL = `file://${__dirname}/index.html`;
 let mainWindow: BrowserWindow | null = null;
+
+const store = new ElectronStore();
 
 // アプリ起動後にWindowを立ち上げる
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     width: 1366,
     height: 768,
-    webPreferences: { nodeIntegration: true } // webページを開くなら脆弱性があるので設定を見直す
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: `${__dirname}/preload.js`
+    }
   });
 
   mainWindow.loadURL(mainURL);
@@ -29,4 +36,15 @@ app.on('activate', () => {
   if (mainWindow === null) {
     createWindow();
   }
+});
+
+// IPC通信
+ipcMain.handle('message', async (_, data) => {
+  store.set('data', data);
+
+  return store.get('data');
+});
+
+ipcMain.handle('getText', async () => {
+  return store.get('data');
 });

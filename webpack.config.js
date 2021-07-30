@@ -16,15 +16,12 @@ const main = {
     rules: [
       {
         test: /.ts?$/,
+        use: ["ts-loader"],
         include: [path.resolve(__dirname, "src")],
         exclude: [path.resolve(__dirname, "node_modules")],
-        use: ["ts-loader"],
       },
     ],
   },
-  devServer: {
-    contentBase: path.resolve(__dirname, 'dist')
-  }
 };
 
 // レンダラープロセスの設定
@@ -52,9 +49,6 @@ const renderer = {
       },
     ],
   },
-  devServer: {
-    contentBase: path.resolve(__dirname, 'dist', 'scripts')
-  }
 };
 
 module.exports = [main, renderer];

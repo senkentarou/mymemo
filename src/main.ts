@@ -21,6 +21,8 @@ const createWindow = (): void => {
   mainWindow.loadURL(mainURL);
   // 開発者ツールも同時に開く場合はコメント外す
   // mainWindow.webContents.openDevTools();
+  // データを全削除したい場合はコメント外す
+  // store.clear()
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -39,12 +41,12 @@ app.on('activate', () => {
 });
 
 // IPC通信
-ipcMain.handle('message', async (_, data) => {
+ipcMain.handle('sendMemos', async (_, data) => {
   store.set('data', data);
 
   return store.get('data');
 });
 
-ipcMain.handle('getText', async () => {
+ipcMain.handle('fetchMemos', async () => {
   return store.get('data');
 });

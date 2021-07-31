@@ -12,6 +12,13 @@ declare global {
   }
 };
 
+type Memo = {
+  id: number; // id
+  title: string; // 見出し
+  text: string; // 本文
+  removed: boolean; // 論理削除フラグ
+};
+
 const ipcRenderer = window.api;
 
 const useStyles = makeStyles((theme: Theme) => ({
@@ -88,6 +95,12 @@ const useStyles = makeStyles((theme: Theme) => ({
     height: '100%',
     overflow: 'auto',
   },
+  listItemRoot: {
+    backgroundColor: alpha(theme.palette.info.main, 0.15),
+    '&:hover': {
+      backgroundColor: alpha(theme.palette.info.main, 0.25),
+    },
+  },
   mainContent: {
     flexGrow: 1,
     padding: theme.spacing(1),
@@ -101,7 +114,7 @@ const useStyles = makeStyles((theme: Theme) => ({
     width: '100%',
     height: `calc(100vh - ${theme.spacing(11)}px)`
   },
-  textArea: {
+  textInput: {
     width: '100% !important',
     height: '100% !important',
     overflow: 'auto !important'
@@ -110,23 +123,108 @@ const useStyles = makeStyles((theme: Theme) => ({
 
 const App: React.FC = () => {
   const classes = useStyles('');
-  const [text, setText] = useState<string>('');
+  const [disableUpdate, setDisableUpdate] = useState<boolean>(false);
+  const [memos, setMemos] = useState<Memo[]>([]);
+  const [currentMemo, setCurrentMemo] = useState<Memo>({
+    id: 0,
+    title: '',
+    text: '',
+    removed: false
+  });
 
   const handleOnChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value: string = event.target.value;
-    const savedValue: string = await ipcRenderer.send('message', value);
+    const text: string = event.target.value || '';
 
-    setText(savedValue);
+    const firstLine: string = text.split('\n')[0];
+    const initialTitle: string = firstLine.length > 12 ? (firstLine.slice(0, 8) + ' ...') : firstLine
+    const title = initialTitle === '' ? '[no title]' : initialTitle;
+
+    if (disableUpdate) {
+      setCurrentMemo({
+        ...currentMemo,
+        title: title,
+        text: text
+      });
+      return;
+    }
+
+    setDisableUpdate(true);
+
+    const targetMemoIndex = memos.findIndex((memo: Memo) => {
+      return memo.id === currentMemo.id
+    });
+    const otherMemos = memos.filter((memo: Memo) => {
+      return memo.id !== memos[targetMemoIndex]?.id;
+    });
+    const updateValue: Memo = {
+      id: currentMemo.id,
+      title: title,
+      text: text,
+      removed: currentMemo.removed
+    };
+
+    const savedMemos: Memo[] = await ipcRenderer.sendMemos('sendMemos', [updateValue].concat(otherMemos));
+
+    setMemos(savedMemos);
+    setCurrentMemo(updateValue);
+
+    setTimeout((() => {setDisableUpdate(false)}), 500);
+  };
+
+  const handleOnCreateClick = async () => {
+    const new_memo: Memo = {
+      id: Math.round(new Date().getTime()),
+      title: '[no title]',
+      text: '',
+      removed: false
+    };
+
+    const savedMemos: Memo[] = await ipcRenderer.sendMemos('sendMemos', [new_memo].concat(memos));
+
+    setMemos(savedMemos);
+    setCurrentMemo(new_memo);
+  };
+
+  const handleOnDeleteClick = async () => {
+    const targetMemoIndex = memos.findIndex((memo: Memo) => {
+      return memo.id === currentMemo.id
+    });
+    const otherMemos = memos.filter((memo: Memo) => {
+      return memo.id !== memos[targetMemoIndex]?.id;
+    });
+    const updateValue: Memo = {
+      id: currentMemo.id,
+      title: currentMemo.title,
+      text: currentMemo.text,
+      removed: true
+    };
+
+    const savedMemos: Memo[] = await ipcRenderer.sendMemos('sendMemos', otherMemos.concat([updateValue]));
+
+    setMemos(savedMemos);
+    setCurrentMemo(savedMemos[0]);
   };
 
   useEffect(() => {
     (async () => {
-      const result: string = await ipcRenderer.getText()
-      if (result) {
-        setText(result);
+      const result: Memo[] = await ipcRenderer.fetchMemos();
+      if (result && result.length > 0) {
+        setMemos(result);
+        setCurrentMemo(result[0]);
+      } else {
+        const initial_memo: Memo = {
+          id: Math.round(new Date().getTime()),
+          title: '[no title]',
+          text: '',
+          removed: false
+        };
+        setMemos([initial_memo]);
+        setCurrentMemo(initial_memo);
       }
     })();
   }, []);
+
+  console.log(memos)
 
   return (
     <div className={classes.root}>
@@ -137,10 +235,20 @@ const App: React.FC = () => {
           </Typography>
 
           <div className={classes.toolGroup}>
-            <IconButton color="inherit" aria-label="delete">
+            <IconButton
+              color="inherit"
+              aria-label="delete"
+              disabled={memos && memos.filter((memo: Memo) => { return !memo.removed }).length < 2}
+              onClick={handleOnDeleteClick}
+            >
               <DeleteIcon />
             </IconButton>
-            <IconButton color="inherit" aria-label="postAdd">
+            <IconButton
+              color="inherit"
+              aria-label="postAdd"
+              disabled={currentMemo.text === ''}
+              onClick={handleOnCreateClick}
+            >
               <PostAddIcon />
             </IconButton>
           </div>
@@ -171,9 +279,35 @@ const App: React.FC = () => {
         <Toolbar />
         <div className={classes.drawerContainer}>
           <List>
-            <ListItem button key={'sample'}>
-              <ListItemText primary={'sample'} />
-            </ListItem>
+            {memos.map((memo: Memo, index: number) => {
+              if (!memo.removed) {
+                if (memo.id === currentMemo.id) {
+                  return (
+                    <ListItem
+                      key={currentMemo.id}
+                      button
+                      classes={{
+                        root: classes.listItemRoot,
+                      }}
+                    >
+                      <ListItemText primary={currentMemo.title} />
+                    </ListItem>
+                  );
+                } else {
+                  return (
+                    <ListItem
+                      key={memo.id}
+                      button
+                      onClick={() => {
+                        setCurrentMemo(memos[index]);
+                      }}
+                    >
+                      <ListItemText primary={memo.title} />
+                    </ListItem>
+                  );
+                }
+              }
+            })}
           </List>
         </div>
       </Drawer>
@@ -183,10 +317,10 @@ const App: React.FC = () => {
         <div className={classes.textContent}>
           <InputBase
             multiline
-            defaultValue={text}
+            value={currentMemo.text}
             classes={{
               root: classes.textRoot,
-              input: classes.textArea
+              input: classes.textInput
             }}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => { handleOnChange(event) }}
           />

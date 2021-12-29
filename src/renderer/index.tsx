@@ -224,8 +224,6 @@ const App: React.FC = () => {
     })();
   }, []);
 
-  console.log(memos)
-
   return (
     <div className={classes.root}>
       <AppBar position="fixed" className={classes.appBar}>

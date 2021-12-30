@@ -136,7 +136,7 @@ const App: React.FC = () => {
     const text: string = event.target.value || '';
 
     const firstLine: string = text.split('\n')[0];
-    const initialTitle: string = firstLine.length > 12 ? (firstLine.slice(0, 8) + ' ...') : firstLine
+    const initialTitle: string = firstLine.length > 12 ? (firstLine.slice(0, 8) + ' ...') : firstLine;
     const title = initialTitle === '' ? '[no title]' : initialTitle;
 
     if (disableUpdate) {
@@ -151,7 +151,7 @@ const App: React.FC = () => {
     setDisableUpdate(true);
 
     const targetMemoIndex = memos.findIndex((memo: Memo) => {
-      return memo.id === currentMemo.id
+      return memo.id === currentMemo.id;
     });
     const otherMemos = memos.filter((memo: Memo) => {
       return memo.id !== memos[targetMemoIndex]?.id;
@@ -168,7 +168,7 @@ const App: React.FC = () => {
     setMemos(savedMemos);
     setCurrentMemo(updateValue);
 
-    setTimeout((() => {setDisableUpdate(false)}), 500);
+    setTimeout((() => {setDisableUpdate(false);}), 500);
   };
 
   const handleOnCreateClick = async () => {
@@ -187,7 +187,7 @@ const App: React.FC = () => {
 
   const handleOnDeleteClick = async () => {
     const targetMemoIndex = memos.findIndex((memo: Memo) => {
-      return memo.id === currentMemo.id
+      return memo.id === currentMemo.id;
     });
     const otherMemos = memos.filter((memo: Memo) => {
       return memo.id !== memos[targetMemoIndex]?.id;
@@ -224,6 +224,8 @@ const App: React.FC = () => {
     })();
   }, []);
 
+  console.log(memos);
+
   return (
     <div className={classes.root}>
       <AppBar position="fixed" className={classes.appBar}>
@@ -236,7 +238,7 @@ const App: React.FC = () => {
             <IconButton
               color="inherit"
               aria-label="delete"
-              disabled={memos && memos.filter((memo: Memo) => { return !memo.removed }).length < 2}
+              disabled={memos && memos.filter((memo: Memo) => { return !memo.removed; }).length < 2}
               onClick={handleOnDeleteClick}
             >
               <DeleteIcon />
@@ -320,7 +322,7 @@ const App: React.FC = () => {
               root: classes.textRoot,
               input: classes.textInput
             }}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => { handleOnChange(event) }}
+            onChange={(event: React.ChangeEvent<HTMLInputElement>) => { handleOnChange(event); }}
           />
         </div>
       </main>

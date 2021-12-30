@@ -1,0 +1,19 @@
+---
+env:
+  es2020: true
+parser: '@typescript-eslint/parser'
+parserOptions:
+  project: ./tsconfig.json
+  ecmaFeatures:
+    jsx: true
+plugins:
+  - '@typescript-eslint'
+extends:
+  - eslint:recommended
+  - plugin:@typescript-eslint/eslint-recommended
+  - plugin:@typescript-eslint/recommended
+  - prettier
+rules:
+  semi:
+    - error
+    - always
